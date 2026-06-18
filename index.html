@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="攒股收息 — 智能追踪您的股票投资收益，轻松管理股息收入">
+  <title>攒股收息 — 股息投资收益追踪器</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i> 攒股收息
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="login.html">登录</a></li>
+      <li><a href="register.html">注册</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="hero">
+      <div class="hero-badge">
+        <i class="fas fa-sparkles"></i> 聪明的投资人都在用
+      </div>
+      <h1><span class="highlight">攒股收息</span><br>让钱为你工作</h1>
+      <p>
+        精确追踪每一笔持仓的收益与股息，<br>
+        让复利的力量看得见
+      </p>
+      <div class="hero-actions">
+        <a href="register.html" class="btn btn-primary btn-lg">
+          <i class="fas fa-rocket"></i> 免费开始使用
+        </a>
+        <a href="login.html" class="btn btn-secondary btn-lg">
+          <i class="fas fa-sign-in-alt"></i> 我已有账号
+        </a>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(240, 185, 11, 0.15); color: var(--accent-gold);">
+          <i class="fas fa-chart-pie"></i>
+        </div>
+        <h3>持仓一目了然</h3>
+        <p>饼图展示持仓分布，每只股票的市值、盈亏、股息率清晰可见</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green);">
+          <i class="fas fa-coins"></i>
+        </div>
+        <h3>股息收益追踪</h3>
+        <p>自动计算基于成本的股息收益率，让复利增长看得见</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">
+          <i class="fas fa-search"></i>
+        </div>
+        <h3>智能股票搜索</h3>
+        <p>支持 A股、港股、美股，输入代码或名称即可快速添加</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple);">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h3>数据安全可靠</h3>
+        <p>您的数据加密存储在服务器上，随时随地安全访问</p>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // 检查是否已登录
+    const token = localStorage.getItem('token');
+    if (token) {
+      window.location.href = 'dashboard.html';
+    }
+
+    // 移动端菜单切换
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+  </script>
+<footer style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">© <a href="https://www.mongon.cn/" target="_blank" style="color:var(--primary);text-decoration:none;">茫跟的小屋</a></footer>
+</body>
+</html>

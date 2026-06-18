@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 — 攒股收息</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i> 攒股收息
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="login.html">登录</a></li>
+      <li><a href="register.html">注册</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="auth-container">
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-user-plus"></i> 创建账号
+        </div>
+
+        <div id="alert" class="alert" style="display: none;"></div>
+
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="username">
+              <i class="fas fa-user"></i> 用户名
+            </label>
+            <input type="text" id="username" name="username" placeholder="3-50个字符" required minlength="3" maxlength="50" autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="password">
+              <i class="fas fa-lock"></i> 密码
+            </label>
+            <input type="password" id="password" name="password" placeholder="至少6个字符" required minlength="6" autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">
+              <i class="fas fa-lock"></i> 确认密码
+            </label>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="再次输入密码" required autocomplete="new-password">
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fas fa-user-plus"></i> 注册
+          </button>
+        </form>
+
+        <div class="auth-link">
+          已有账号？ <a href="login.html">立即登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 检查是否已登录
+    const token = localStorage.getItem('token');
+    if (token) {
+      window.location.href = 'dashboard.html';
+    }
+
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+
+    function showAlert(msg, type) {
+      const el = document.getElementById('alert');
+      el.className = `alert alert-${type}`;
+      el.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${msg}`;
+      el.style.display = 'flex';
+    }
+
+    function hideAlert() {
+      document.getElementById('alert').style.display = 'none';
+    }
+
+    // 注册
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const submitBtn = document.getElementById('submitBtn');
+
+      // 验证
+      if (password !== confirmPassword) {
+        showAlert('两次输入的密码不一致', 'error');
+        return;
+      }
+      if (password.length < 6) {
+        showAlert('密码至少需要6个字符', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 注册中...';
+      hideAlert();
+
+      try {
+        const regRes = await fetch('api/register.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const regData = await regRes.json();
+
+        if (regData.success) {
+          localStorage.setItem('token', regData.token);
+          localStorage.setItem('user', JSON.stringify(regData.user));
+          showAlert('注册成功，正在跳转...', 'success');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        } else {
+          showAlert(regData.error || '注册失败', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> 注册';
+        }
+      } catch (e) {
+        showAlert('网络错误，请稍后重试', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> 注册';
+      }
+    });
+  </script>
+  <footer style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">© <a href="https://www.mongon.cn/" target="_blank" style="color:var(--primary);text-decoration:none;">茫跟的小屋</a></footer>
+</body>
+</html>

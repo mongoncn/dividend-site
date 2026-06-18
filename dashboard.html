@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仪表板 — 攒股收息</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i> 攒股收息
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> 仪表板</a></li>
+      <li><a href="profile.html"><i class="fas fa-user"></i> 个人中心</a></li>
+    </ul>
+    <div class="user-info">
+      <span id="username"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" title="退出登录">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dashboard-header">
+      <h1><i class="fas fa-tachometer-alt"></i> 投资仪表板</h1>
+      <div class="dashboard-actions">
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <i class="fas fa-plus"></i> 添加持仓
+        </button>
+      </div>
+    </div>
+
+    <div id="alert" class="alert" style="display: none;"></div>
+
+    <!-- 收益统计卡片 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon gold"><i class="fas fa-wallet"></i></div>
+        <div class="stat-value" id="totalValue">--</div>
+        <div class="stat-label">总市值</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-value" id="totalProfit">--</div>
+        <div class="stat-label">总盈亏</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-coins"></i></div>
+        <div class="stat-value" id="totalAnnualDividend">--</div>
+        <div class="stat-label">预计年股息</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-percentage"></i></div>
+        <div class="stat-value" id="totalYieldOnCost">--</div>
+        <div class="stat-label">成本股息率</div>
+      </div>
+    </div>
+
+    <!-- 已收分红统计 -->
+    <div class="card" id="dividendSummaryCard">
+      <div class="card-header">
+        <i class="fas fa-gift"></i> 分红记录
+        <span style="margin-left: auto; font-size: 0.85rem; color: var(--text-muted);">
+          累计已收: <strong id="totalReceivedDividend" class="positive">¥0.00</strong>
+        </span>
+      </div>
+      <div class="table-responsive" id="dividendTableContainer" style="display: none;">
+        <table>
+          <thead>
+            <tr>
+              <th>股票</th>
+              <th>分红日期</th>
+              <th>每股分红</th>
+              <th>持有数量</th>
+              <th>总金额</th>
+              <th>备注</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="dividendBody"></tbody>
+        </table>
+      </div>
+      <div id="dividendEmpty" class="empty-state" style="padding: 1.5rem;">
+        <i class="fas fa-gift" style="font-size: 1.5rem;"></i>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem;">暂无分红记录，在持仓中点击"分红"按钮记录</p>
+      </div>
+    </div>
+
+    <!-- 持仓列表 -->
+    <div class="card">
+      <div class="card-header">
+        <span><i class="fas fa-briefcase"></i> 我的持仓</span>
+        <button class="btn btn-sm" onclick="refreshAllPrices()" title="刷新全部最新价">
+          <i class="fas fa-sync-alt"></i> 刷新价格
+        </button>
+      </div>
+
+      <div id="loadingState" class="empty-state">
+        <div class="loading-spinner">
+          <span class="spinner-ring"></span> 加载中...
+        </div>
+      </div>
+
+      <div class="table-responsive" id="tableContainer" style="display: none;">
+        <table id="holdingsTable">
+          <thead>
+            <tr>
+              <th>股票</th>
+              <th>数量</th>
+              <th>成本价</th>
+              <th>当前价</th>
+              <th>市值</th>
+              <th>盈亏</th>
+              <th>股息率</th>
+              <th>成本股息率</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="holdingsBody"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="fas fa-inbox"></i>
+        <p>暂无持仓记录</p>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <i class="fas fa-plus"></i> 添加第一只股票
+        </button>
+      </div>
+    </div>
+
+    <!-- 持仓分布图表 -->
+    <div class="card" id="chartCard" style="display: none;">
+      <div class="card-header">
+        <i class="fas fa-chart-pie"></i> 持仓分布
+      </div>
+      <div style="max-width: 450px; margin: 0 auto;">
+        <canvas id="holdingsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 添加持仓模态框 ========== -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-plus"></i> 添加持仓</h2>
+        <button class="modal-close" onclick="closeModal('addModal')">&times;</button>
+      </div>
+      <form id="addForm">
+        <div class="form-group" style="position: relative;">
+          <label for="stockSymbol">搜索股票</label>
+          <input type="text" id="stockSymbol" placeholder="输入股票名称或代码，如：茅台、AAPL" required oninput="searchStock()">
+          <div id="searchResults" class="search-dropdown"></div>
+        </div>
+        <div class="form-group">
+          <label for="stockName">股票名称</label>
+          <input type="text" id="stockName" placeholder="选择股票后自动填入">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="buyPrice">买入价格</label>
+            <input type="number" id="buyPrice" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="quantity">数量（股）</label>
+            <input type="number" id="quantity" placeholder="0" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="buyDate">买入日期</label>
+          <input type="date" id="buyDate">
+        </div>
+        <div class="form-group">
+          <label for="notes">备注</label>
+          <textarea id="notes" rows="2" placeholder="可选备注"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="addSubmitBtn">
+          <i class="fas fa-save"></i> 保存
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== 编辑持仓模态框 ========== -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-edit"></i> 编辑持仓</h2>
+        <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+      </div>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label>股票</label>
+          <input type="text" id="editStockSymbol" disabled>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="editBuyPrice">买入价格</label>
+            <input type="number" id="editBuyPrice" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="editCurrentPrice">当前价格</label>
+            <input type="number" id="editCurrentPrice" step="0.01">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="editDividendYield">股息率 (%)</label>
+            <input type="number" id="editDividendYield" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="editQuantity">数量（股）</label>
+            <input type="number" id="editQuantity" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="editBuyDate">买入日期</label>
+          <input type="date" id="editBuyDate">
+        </div>
+        <div class="form-group">
+          <label for="editNotes">备注</label>
+          <textarea id="editNotes" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+          <i class="fas fa-save"></i> 更新
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== 加仓模态框 ========== -->
+  <div id="addPositionModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-plus-circle"></i> 加仓</h2>
+        <button class="modal-close" onclick="closeModal('addPositionModal')">&times;</button>
+      </div>
+      <form id="addPositionForm">
+        <input type="hidden" id="addPositionHoldingId">
+        <div class="form-group">
+          <label>股票</label>
+          <input type="text" id="addPositionStockInfo" disabled>
+        </div>
+        <div class="form-group">
+          <label>当前持有</label>
+          <input type="text" id="addPositionCurrentQty" disabled>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="addPositionPrice">加仓价格</label>
+            <input type="number" id="addPositionPrice" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="addPositionQty">加仓数量（股）</label>
+            <input type="number" id="addPositionQty" placeholder="0" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="addPositionDate">买入日期</label>
+          <input type="date" id="addPositionDate">
+        </div>
+        <div id="addPositionPreview" style="background: var(--bg-input); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-secondary); display: none;">
+        </div>
+        <button type="submit" class="btn btn-primary" id="addPositionSubmitBtn">
+          <i class="fas fa-check"></i> 确认加仓
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== 分红模态框 ========== -->
+  <div id="dividendModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-gift"></i> 记录分红</h2>
+        <button class="modal-close" onclick="closeModal('dividendModal')">&times;</button>
+      </div>
+      <form id="dividendForm">
+        <input type="hidden" id="dividendHoldingId">
+        <div class="form-group">
+          <label>股票</label>
+          <input type="text" id="dividendStockInfo" disabled>
+        </div>
+        <div class="form-group">
+          <label>持有数量</label>
+          <input type="text" id="dividendQuantity" disabled>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="dividendAmountPerShare">每股分红（元）</label>
+            <input type="number" id="dividendAmountPerShare" step="0.0001" placeholder="0.0000" required oninput="calcDividendTotal()">
+          </div>
+          <div class="form-group">
+            <label for="dividendDate">分红日期</label>
+            <input type="date" id="dividendDate" required>
+          </div>
+        </div>
+        <div id="dividendPreview" style="background: var(--bg-input); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-secondary); display: none;">
+        </div>
+        <div class="form-group">
+          <label for="dividendNotes">备注</label>
+          <input type="text" id="dividendNotes" placeholder="如：2024年度分红">
+        </div>
+        <button type="submit" class="btn btn-primary" id="dividendSubmitBtn">
+          <i class="fas fa-save"></i> 保存分红记录
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let holdings = [];
+    let allDividends = [];
+    let holdingsChart = null;
+
+    // ===== 页面初始化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!token) { window.location.href = 'login.html'; return; }
+      document.getElementById('username').textContent = user.username;
+      loadHoldings();
+      loadSummary();
+      loadAllDividends();
+    });
+
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+
+    function showAlert(message, type = 'success') {
+      const alertDiv = document.getElementById('alert');
+      const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+      alertDiv.style.display = 'flex';
+      setTimeout(() => { alertDiv.style.display = 'none'; }, 3000);
+    }
+
+    // ===== 通用模态框控制 =====
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // ESC 关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+      }
+    });
+
+    // 点击遮罩关闭
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+      }
+    });
+
+    // ===== 搜索股票 =====
+    let searchTimeout = null;
+    async function searchStock() {
+      const symbol = document.getElementById('stockSymbol').value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      if (symbol.length < 1) { resultsDiv.classList.remove('active'); return; }
+      if (searchTimeout) clearTimeout(searchTimeout);
+
+      searchTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch(`api/search_stock.php?symbol=${encodeURIComponent(symbol)}`);
+          const data = await response.json();
+          if (data.success && data.results.length > 0) {
+            resultsDiv.innerHTML = data.results.map(stock => `
+              <div class="search-item" onclick="selectStock('${stock.symbol}', '${stock.name}')">
+                <div class="stock-info">
+                  <span class="symbol">${stock.symbol}</span>
+                  <span class="name">${stock.name}</span>
+                </div>
+                <span class="market">${stock.market}</span>
+              </div>
+            `).join('');
+            resultsDiv.classList.add('active');
+          } else {
+            resultsDiv.classList.remove('active');
+          }
+        } catch (error) {
+          resultsDiv.classList.remove('active');
+        }
+      }, 300);
+    }
+
+    function selectStock(symbol, name) {
+      document.getElementById('stockSymbol').value = symbol;
+      document.getElementById('stockName').value = name;
+      document.getElementById('searchResults').classList.remove('active');
+      // 自动获取最新价
+      fetchStockPrice(symbol);
+    }
+
+    // 获取股票最新价（浏览器直接调用腾讯财经API）
+    function fetchStockPrice(symbol) {
+      const priceInput = document.getElementById('buyPrice');
+      priceInput.placeholder = '获取中...';
+
+      if (!/^\d{6}$/.test(symbol)) {
+        priceInput.placeholder = '0.00';
+        return;
+      }
+
+      const prefix = symbol.startsWith('6') ? 'sh' : 'sz';
+      const varName = `v_${prefix}${symbol}`;
+
+      // 使用script标签加载（腾讯API返回JS变量赋值）
+      const script = document.createElement('script');
+      script.src = `https://qt.gtimg.cn/q=${prefix}${symbol}`;
+      script.charset = 'gbk';  // 腾讯API返回GBK编码
+
+      script.onload = function() {
+        try {
+          // 腾讯API会设置 window.v_sh600519 = "..."
+          const data = window[varName];
+          if (data && typeof data === 'string') {
+            const parts = data.split('~');
+            if (parts.length > 3) {
+              const price = parseFloat(parts[3]);
+              if (!isNaN(price)) {
+                priceInput.value = price.toFixed(2);
+              } else {
+                priceInput.placeholder = '0.00';
+              }
+            } else {
+              priceInput.placeholder = '0.00';
+            }
+          } else {
+            priceInput.placeholder = '0.00';
+          }
+        } catch (e) {
+          priceInput.placeholder = '0.00';
+        }
+        // 清理
+        if (window[varName]) delete window[varName];
+        document.body.removeChild(script);
+      };
+
+      script.onerror = function() {
+        priceInput.placeholder = '0.00';
+        document.body.removeChild(script);
+      };
+
+      document.body.appendChild(script);
+    }
+
+    document.addEventListener('click', function(e) {
+      const resultsDiv = document.getElementById('searchResults');
+      const symbolInput = document.getElementById('stockSymbol');
+      if (!symbolInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('active');
+      }
+    });
+
+    // ===== 加载数据 =====
+    async function loadHoldings() {
+      const loadingState = document.getElementById('loadingState');
+      const tableContainer = document.getElementById('tableContainer');
+      const emptyState = document.getElementById('emptyState');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('api/get_holdings.php', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        loadingState.style.display = 'none';
+        if (Array.isArray(data)) {
+          holdings = data;
+          if (holdings.length === 0) {
+            tableContainer.style.display = 'none';
+            emptyState.style.display = 'block';
+            document.getElementById('chartCard').style.display = 'none';
+          } else {
+            tableContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+            renderHoldings();
+            updateChart();
+          }
+        } else {
+          showAlert(data.error || '加载失败', 'error');
+        }
+      } catch (error) {
+        loadingState.style.display = 'none';
+        showAlert('网络错误', 'error');
+      }
+    }
+
+    async function loadSummary() {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('api/get_summary.php', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const summary = await response.json();
+        if (summary.totalValue !== undefined) renderSummary(summary);
+      } catch (error) { console.error(error); }
+    }
+
+    function loadAllDividends() {
+      const token = localStorage.getItem('token');
+      fetch('api/get_dividends.php', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => { if (res.ok) return res.json(); throw new Error('skip'); })
+      .then(data => {
+        if (data && data.success) {
+          allDividends = data.dividends || [];
+          document.getElementById('totalReceivedDividend').textContent = `¥${(data.totalDividend || 0).toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+          renderDividends();
+        }
+      })
+      .catch(() => {});
+    }
+
+    // ===== 渲染 =====
+    function renderSummary(summary) {
+      document.getElementById('totalValue').textContent = `¥${summary.totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+      const profitEl = document.getElementById('totalProfit');
+      profitEl.textContent = `¥${summary.totalProfit.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+      profitEl.className = `stat-value ${summary.totalProfit >= 0 ? 'positive' : 'negative'}`;
+      document.getElementById('totalAnnualDividend').textContent = `¥${summary.totalAnnualDividend.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+      document.getElementById('totalYieldOnCost').textContent = `${summary.totalYieldOnCost.toFixed(2)}%`;
+      // 更新累计已收分红
+      if (summary.totalDividendsReceived !== undefined && summary.totalDividendsReceived > 0) {
+        document.getElementById('totalReceivedDividend').textContent = `¥${summary.totalDividendsReceived.toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+      }
+    }
+
+    function renderHoldings() {
+      const tbody = document.getElementById('holdingsBody');
+      tbody.innerHTML = holdings.map(h => {
+        const profitClass = h.profit >= 0 ? 'positive' : 'negative';
+        const profitSign = h.profit >= 0 ? '+' : '';
+        const yieldOnCostClass = h.yieldOnCost >= 3 ? 'positive' : '';
+        return `
+        <tr>
+          <td data-label="股票">
+            <div>
+              <div class="stock-symbol">${h.symbol}</div>
+              <div class="stock-name">${h.name || '--'}</div>
+            </div>
+          </td>
+          <td data-label="数量">${h.quantity}</td>
+          <td data-label="成本价">
+            ¥${parseFloat(h.adjusted_buy_price || h.buy_price).toFixed(2)}
+            ${h.totalDividends > 0 ? `<br><small style="color: var(--text-muted);">原价: ¥${parseFloat(h.buy_price).toFixed(2)}</small>` : ''}
+          </td>
+          <td data-label="当前价">
+            <input type="number" step="0.01" value="${parseFloat(h.current_price).toFixed(2)}"
+                   onchange="updatePrice(${h.id}, this.value)">
+          </td>
+          <td data-label="市值">¥${h.currentValue.toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
+          <td data-label="盈亏" class="${profitClass}">
+            ${profitSign}¥${h.profit.toLocaleString('zh-CN', {minimumFractionDigits: 2})}
+            <br><small>(${profitSign}${h.profitPercentage.toFixed(2)}%)</small>
+          </td>
+          <td data-label="股息率">
+            <input type="number" step="0.01" value="${parseFloat(h.dividend_yield).toFixed(2)}"
+                   onchange="updateDividend(${h.id}, this.value)" style="width: 60px;"> %
+          </td>
+          <td data-label="成本股息率" class="${yieldOnCostClass}">${h.yieldOnCost.toFixed(2)}%</td>
+          <td data-label="操作">
+            <div class="holding-actions">
+              <button class="btn btn-primary btn-sm" onclick="openAddPosition(${h.id})" title="加仓" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">
+                <i class="fas fa-plus"></i> 加仓
+              </button>
+              <button class="btn btn-ghost btn-icon" onclick="openDividend(${h.id})" title="记录分红">
+                <i class="fas fa-gift"></i>
+              </button>
+              <button class="btn btn-ghost btn-icon" onclick="openEditModal(${h.id})" title="编辑">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-danger btn-icon" onclick="deleteHolding(${h.id})" title="删除">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderDividends() {
+      const tbody = document.getElementById('dividendBody');
+      const tableContainer = document.getElementById('dividendTableContainer');
+      const emptyDiv = document.getElementById('dividendEmpty');
+
+      if (allDividends.length === 0) {
+        tableContainer.style.display = 'none';
+        emptyDiv.style.display = 'block';
+        return;
+      }
+
+      tableContainer.style.display = 'block';
+      emptyDiv.style.display = 'none';
+
+      tbody.innerHTML = allDividends.map(d => `
+        <tr>
+          <td data-label="股票">
+            <div class="stock-symbol">${d.symbol}</div>
+            <div class="stock-name">${d.name || ''}</div>
+          </td>
+          <td data-label="分红日期">${d.dividend_date}</td>
+          <td data-label="每股分红">¥${parseFloat(d.amount_per_share).toFixed(4)}</td>
+          <td data-label="持有数量">${d.quantity}</td>
+          <td data-label="总金额" class="positive">¥${parseFloat(d.total_amount).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
+          <td data-label="备注">${d.notes || '--'}</td>
+          <td data-label="操作">
+            <button class="btn btn-danger btn-icon" onclick="deleteDividend(${d.id})" title="删除">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateChart() {
+      const chartCard = document.getElementById('chartCard');
+      if (holdings.length === 0) { chartCard.style.display = 'none'; return; }
+      chartCard.style.display = 'block';
+      const ctx = document.getElementById('holdingsChart').getContext('2d');
+      if (holdingsChart) holdingsChart.destroy();
+
+      holdingsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: holdings.map(h => h.name || h.symbol),
+          datasets: [{
+            data: holdings.map(h => h.currentValue),
+            backgroundColor: ['#f0b90b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#14b8a6', '#6366f1'],
+            borderWidth: 0,
+            hoverBorderWidth: 2,
+            hoverBorderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '60%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#6b7280', padding: 16, usePointStyle: true, font: { size: 12 } } },
+            tooltip: {
+              backgroundColor: '#fff', titleColor: '#1a1d29', bodyColor: '#6b7280',
+              borderColor: '#e5e7eb', borderWidth: 1, padding: 12,
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  return ` ${ctx.label}: ¥${ctx.raw.toLocaleString('zh-CN', {minimumFractionDigits: 2})} (${((ctx.raw / total) * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ===== 添加持仓 =====
+    function openAddModal() {
+      document.getElementById('addModal').classList.add('active');
+      document.getElementById('addForm').reset();
+      document.getElementById('searchResults').classList.remove('active');
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('addSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 保存中...';
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('api/add_holding.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            symbol: document.getElementById('stockSymbol').value.trim(),
+            name: document.getElementById('stockName').value.trim(),
+            buy_price: parseFloat(document.getElementById('buyPrice').value),
+            quantity: parseInt(document.getElementById('quantity').value),
+            buy_date: document.getElementById('buyDate').value || null,
+            notes: document.getElementById('notes').value || null
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showAlert('持仓添加成功');
+          closeModal('addModal');
+          loadHoldings(); loadSummary();
+        } else {
+          showAlert(data.error || '添加失败', 'error');
+        }
+      } catch (error) { showAlert('网络错误', 'error'); }
+      finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> 保存'; }
+    });
+
+    // ===== 编辑持仓 =====
+    function openEditModal(id) {
+      const h = holdings.find(x => x.id === id);
+      if (!h) return;
+      document.getElementById('editId').value = h.id;
+      document.getElementById('editStockSymbol').value = `${h.symbol} - ${h.name || ''}`;
+      document.getElementById('editBuyPrice').value = h.buy_price;
+      document.getElementById('editCurrentPrice').value = h.current_price;
+      document.getElementById('editDividendYield').value = h.dividend_yield;
+      document.getElementById('editQuantity').value = h.quantity;
+      document.getElementById('editBuyDate').value = h.buy_date || '';
+      document.getElementById('editNotes').value = h.notes || '';
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('editSubmitBtn');
+      const holdingId = document.getElementById('editId').value;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 更新中...';
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`api/update_holding.php?id=${holdingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            buy_price: parseFloat(document.getElementById('editBuyPrice').value),
+            quantity: parseInt(document.getElementById('editQuantity').value),
+            buy_date: document.getElementById('editBuyDate').value || null,
+            notes: document.getElementById('editNotes').value || null
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          await fetch('api/update_stock_price.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              holding_id: parseInt(holdingId),
+              current_price: parseFloat(document.getElementById('editCurrentPrice').value),
+              dividend_yield: parseFloat(document.getElementById('editDividendYield').value) || 0
+            })
+          });
+          showAlert('持仓更新成功');
+          closeModal('editModal');
+          loadHoldings(); loadSummary();
+        } else { showAlert(data.error || '更新失败', 'error'); }
+      } catch (error) { showAlert('网络错误', 'error'); }
+      finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> 更新'; }
+    });
+
+    // ===== 加仓 =====
+    function openAddPosition(id) {
+      const h = holdings.find(x => x.id === id);
+      if (!h) return;
+      document.getElementById('addPositionHoldingId').value = h.id;
+      document.getElementById('addPositionStockInfo').value = `${h.symbol} - ${h.name || ''}`;
+      document.getElementById('addPositionCurrentQty').value = `${h.quantity} 股`;
+      document.getElementById('addPositionPrice').value = '';
+      document.getElementById('addPositionQty').value = '';
+      document.getElementById('addPositionDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('addPositionPreview').style.display = 'none';
+      document.getElementById('addPositionModal').classList.add('active');
+    }
+
+    // 加仓预览计算
+    document.getElementById('addPositionPrice').addEventListener('input', calcAddPositionPreview);
+    document.getElementById('addPositionQty').addEventListener('input', calcAddPositionPreview);
+
+    function calcAddPositionPreview() {
+      const holdingId = parseInt(document.getElementById('addPositionHoldingId').value);
+      const h = holdings.find(x => x.id === holdingId);
+      if (!h) return;
+
+      const newPrice = parseFloat(document.getElementById('addPositionPrice').value);
+      const newQty = parseInt(document.getElementById('addPositionQty').value);
+      const preview = document.getElementById('addPositionPreview');
+
+      if (!newPrice || !newQty || newPrice <= 0 || newQty <= 0) {
+        preview.style.display = 'none';
+        return;
+      }
+
+      const oldQty = h.quantity;
+      const oldPrice = parseFloat(h.buy_price);
+      const totalQty = oldQty + newQty;
+      const avgPrice = ((oldPrice * oldQty) + (newPrice * newQty)) / totalQty;
+
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <div>加仓后总数量: <strong>${totalQty} 股</strong></div>
+        <div>新均价: <strong>¥${avgPrice.toFixed(2)}</strong> (原 ¥${oldPrice.toFixed(2)})</div>
+        <div>本次投入: <strong>¥${(newPrice * newQty).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</strong></div>
+      `;
+    }
+
+    document.getElementById('addPositionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('addPositionSubmitBtn');
+      const holdingId = parseInt(document.getElementById('addPositionHoldingId').value);
+      const h = holdings.find(x => x.id === holdingId);
+      if (!h) return;
+
+      const newPrice = parseFloat(document.getElementById('addPositionPrice').value);
+      const newQty = parseInt(document.getElementById('addPositionQty').value);
+      const totalQty = h.quantity + newQty;
+      const avgPrice = ((parseFloat(h.buy_price) * h.quantity) + (newPrice * newQty)) / totalQty;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 处理中...';
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`api/update_holding.php?id=${holdingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            buy_price: parseFloat(avgPrice.toFixed(2)),
+            quantity: totalQty,
+            buy_date: document.getElementById('addPositionDate').value || null,
+            notes: h.notes
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showAlert(`加仓成功！共持有 ${totalQty} 股，均价 ¥${avgPrice.toFixed(2)}`);
+          closeModal('addPositionModal');
+          loadHoldings(); loadSummary();
+        } else { showAlert(data.error || '加仓失败', 'error'); }
+      } catch (error) { showAlert('网络错误', 'error'); }
+      finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> 确认加仓'; }
+    });
+
+    // ===== 分红 =====
+    function openDividend(id) {
+      const h = holdings.find(x => x.id === id);
+      if (!h) return;
+      document.getElementById('dividendHoldingId').value = h.id;
+      document.getElementById('dividendStockInfo').value = `${h.symbol} - ${h.name || ''}`;
+      document.getElementById('dividendQuantity').value = `${h.quantity} 股`;
+      document.getElementById('dividendAmountPerShare').value = '';
+      document.getElementById('dividendDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('dividendNotes').value = '';
+      document.getElementById('dividendPreview').style.display = 'none';
+      document.getElementById('dividendModal').classList.add('active');
+    }
+
+    function calcDividendTotal() {
+      const holdingId = parseInt(document.getElementById('dividendHoldingId').value);
+      const h = holdings.find(x => x.id === holdingId);
+      if (!h) return;
+
+      const amountPerShare = parseFloat(document.getElementById('dividendAmountPerShare').value);
+      const preview = document.getElementById('dividendPreview');
+
+      if (!amountPerShare || amountPerShare <= 0) {
+        preview.style.display = 'none';
+        return;
+      }
+
+      const total = amountPerShare * h.quantity;
+      preview.style.display = 'block';
+      preview.innerHTML = `本次分红收入: <strong class="positive">¥${total.toLocaleString('zh-CN', {minimumFractionDigits: 2})}</strong>`;
+    }
+
+    document.getElementById('dividendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('dividendSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 保存中...';
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('api/add_dividend.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            holding_id: parseInt(document.getElementById('dividendHoldingId').value),
+            amount_per_share: parseFloat(document.getElementById('dividendAmountPerShare').value),
+            dividend_date: document.getElementById('dividendDate').value,
+            notes: document.getElementById('dividendNotes').value || null
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showAlert('分红记录已保存');
+          closeModal('dividendModal');
+          loadAllDividends();
+        } else { showAlert(data.error || '保存失败', 'error'); }
+      } catch (error) { showAlert('网络错误', 'error'); }
+      finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> 保存分红记录'; }
+    });
+
+    async function deleteDividend(id) {
+      if (!confirm('确定删除这条分红记录？')) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`api/delete_dividend.php?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          showAlert('已删除');
+          loadAllDividends();
+        } else { showAlert(data.error || '删除失败', 'error'); }
+      } catch (error) { showAlert('网络错误', 'error'); }
+    }
+
+    // ===== 其他操作 =====
+    async function deleteHolding(id) {
+      if (!confirm('确定删除这个持仓？关联的分红记录也会一起删除。')) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`api/delete_holding.php?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          showAlert('持仓已删除');
+          loadHoldings(); loadSummary(); loadAllDividends();
+        } else { showAlert(data.error || '删除失败', 'error'); }
+      } catch (error) { showAlert('网络错误', 'error'); }
+    }
+
+    async function updatePrice(holdingId, price) {
+      try {
+        const h = holdings.find(x => x.id === holdingId);
+        if (!h) return;
+        const token = localStorage.getItem('token');
+        await fetch('api/update_stock_price.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ holding_id: holdingId, current_price: parseFloat(price), dividend_yield: h.dividend_yield })
+        });
+        loadHoldings(); loadSummary();
+      } catch (error) { showAlert('更新失败', 'error'); }
+    }
+
+    async function updateDividend(holdingId, yieldValue) {
+      try {
+        const h = holdings.find(x => x.id === holdingId);
+        if (!h) return;
+        const token = localStorage.getItem('token');
+        await fetch('api/update_stock_price.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ holding_id: holdingId, current_price: h.current_price, dividend_yield: parseFloat(yieldValue) })
+        });
+        loadHoldings(); loadSummary();
+      } catch (error) { showAlert('更新失败', 'error'); }
+    }
+
+    // 刷新全部持仓的最新价
+    function refreshAllPrices() {
+      if (holdings.length === 0) return;
+      showAlert('正在获取最新价格...', 'info');
+
+      let completed = 0;
+      const total = holdings.filter(h => /^\d{6}$/.test(h.symbol)).length;
+
+      holdings.forEach(h => {
+        if (!/^\d{6}$/.test(h.symbol)) {
+          completed++;
+          return;
+        }
+
+        const prefix = h.symbol.startsWith('6') ? 'sh' : 'sz';
+        const varName = `v_${prefix}${h.symbol}`;
+
+        const script = document.createElement('script');
+        script.src = `https://qt.gtimg.cn/q=${prefix}${h.symbol}`;
+        script.charset = 'gbk';
+
+        script.onload = function() {
+          try {
+            const data = window[varName];
+            if (data && typeof data === 'string') {
+              const parts = data.split('~');
+              if (parts.length > 3) {
+                const price = parseFloat(parts[3]);
+                if (!isNaN(price)) {
+                  // 更新到服务器
+                  const token = localStorage.getItem('token');
+                  fetch('api/update_stock_price.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ holding_id: h.id, current_price: price, dividend_yield: h.dividend_yield })
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            console.error(`解析${h.symbol}价格失败:`, e);
+          }
+
+          // 清理
+          if (window[varName]) delete window[varName];
+          document.body.removeChild(script);
+
+          completed++;
+          if (completed >= total) {
+            // 所有价格获取完成后刷新页面
+            setTimeout(() => {
+              loadHoldings();
+              loadSummary();
+              showAlert('价格已更新', 'success');
+            }, 500);
+          }
+        };
+
+        script.onerror = function() {
+          document.body.removeChild(script);
+          completed++;
+          if (completed >= total) {
+            setTimeout(() => {
+              loadHoldings();
+              loadSummary();
+              showAlert('价格已更新', 'success');
+            }, 500);
+          }
+        };
+
+        document.body.appendChild(script);
+      });
+    }
+  </script>
+<footer style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">© <a href="https://www.mongon.cn/" target="_blank" style="color:var(--primary);text-decoration:none;">茫跟的小屋</a></footer>
+</body>
+</html>

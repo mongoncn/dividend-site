@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 — 攒股收息</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i> 攒股收息
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="login.html">登录</a></li>
+      <li><a href="register.html">注册</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="auth-container">
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-sign-in-alt"></i> 欢迎回来
+        </div>
+
+        <div id="alert" class="alert" style="display: none;"></div>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">
+              <i class="fas fa-user"></i> 用户名
+            </label>
+            <input type="text" id="username" name="username" placeholder="请输入用户名" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="password">
+              <i class="fas fa-lock"></i> 密码
+            </label>
+            <input type="password" id="password" name="password" placeholder="请输入密码" required autocomplete="current-password">
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fas fa-sign-in-alt"></i> 登录
+          </button>
+        </form>
+
+        <div class="auth-link">
+          还没有账号？ <a href="register.html">立即注册</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 检查是否已登录
+    const token = localStorage.getItem('token');
+    if (token) {
+      window.location.href = 'dashboard.html';
+    }
+
+    // 移动端菜单切换
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+
+    // 登录表单提交
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const alertDiv = document.getElementById('alert');
+      const submitBtn = document.getElementById('submitBtn');
+
+      if (!username || !password) {
+        alertDiv.className = 'alert alert-error';
+        alertDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> 请填写用户名和密码';
+        alertDiv.style.display = 'flex';
+        return;
+      }
+
+      // Loading 状态
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 登录中...';
+
+      try {
+        const response = await fetch('api/login.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+
+          alertDiv.className = 'alert alert-success';
+          alertDiv.innerHTML = '<i class="fas fa-check-circle"></i> 登录成功，正在跳转...';
+          alertDiv.style.display = 'flex';
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+        } else {
+          alertDiv.className = 'alert alert-error';
+          alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error || '登录失败'}`;
+          alertDiv.style.display = 'flex';
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
+        }
+      } catch (error) {
+        console.error('登录错误:', error);
+        alertDiv.className = 'alert alert-error';
+        alertDiv.innerHTML = '<i class="fas fa-wifi"></i> 网络错误，请稍后重试';
+        alertDiv.style.display = 'flex';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
+      }
+    });
+  </script>
+<footer style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">© <a href="https://www.mongon.cn/" target="_blank" style="color:var(--primary);text-decoration:none;">茫跟的小屋</a></footer>
+</body>
+</html>

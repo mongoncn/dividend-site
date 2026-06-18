@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 — 攒股收息</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i> 攒股收息
+    </div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> 仪表板</a></li>
+      <li><a href="profile.html" class="active"><i class="fas fa-user"></i> 个人中心</a></li>
+    </ul>
+    <div class="user-info">
+      <span id="username"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" title="退出登录">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dashboard-header">
+      <h1><i class="fas fa-user"></i> 个人中心</h1>
+    </div>
+
+    <div id="alert" class="alert" style="display: none;"></div>
+
+    <div class="profile-grid">
+      <!-- 用户信息卡片 -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-id-card"></i> 账户信息
+        </div>
+        <div class="profile-info">
+          <div class="info-row">
+            <span class="info-label">用户名</span>
+            <span class="info-value" id="profileUsername">--</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">注册时间</span>
+            <span class="info-value" id="profileCreatedAt">--</span>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border-color);margin:1.2rem 0;">
+        <form id="usernameForm" style="display:flex;gap:10px;align-items:flex-end;">
+          <div class="form-group" style="flex:1;margin-bottom:0;">
+            <label>修改用户名</label>
+            <input type="text" id="newUsername" placeholder="输入新用户名" required minlength="2" maxlength="20">
+          </div>
+          <button type="submit" class="btn btn-primary" style="flex-shrink:0;margin-bottom:0;">
+            <i class="fas fa-check"></i> 保存
+          </button>
+        </form>
+      </div>
+
+      <!-- 投资统计卡片 -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-chart-bar"></i> 投资统计
+        </div>
+        <div class="profile-info">
+          <div class="info-row">
+            <span class="info-label">持仓数量</span>
+            <span class="info-value" id="statHoldingCount">--</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">分红记录数</span>
+            <span class="info-value" id="statDividendCount">--</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">累计已收分红</span>
+            <span class="info-value positive" id="statTotalDividends">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 修改密码卡片 -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-lock"></i> 修改密码
+        </div>
+        <form id="passwordForm">
+          <div class="form-group">
+            <label for="currentPassword">当前密码</label>
+            <input type="password" id="currentPassword" placeholder="请输入当前密码" required>
+          </div>
+          <div class="form-group">
+            <label for="newPassword">新密码</label>
+            <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">确认新密码</label>
+            <input type="password" id="confirmPassword" placeholder="请再次输入新密码" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> 修改密码
+          </button>
+        </form>
+      </div>
+
+      <!-- 危险操作卡片 -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-exclamation-triangle"></i> 危险操作
+        </div>
+        <div class="profile-info">
+          <p style="color: var(--text-muted); margin-bottom: 1rem;">以下操作不可撤销，请谨慎操作。</p>
+          <button class="btn btn-danger" onclick="confirmClearAll()">
+            <i class="fas fa-trash"></i> 清空所有数据
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认清空数据模态框 -->
+  <div id="clearModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-exclamation-triangle"></i> 确认清空</h2>
+        <button class="modal-close" onclick="closeModal('clearModal')">&times;</button>
+      </div>
+      <div style="padding: 1rem 0;">
+        <p style="color: var(--danger); font-weight: 600; margin-bottom: 1rem;">
+          ⚠️ 此操作将删除所有持仓和分红记录，且无法恢复！
+        </p>
+        <p style="color: var(--text-muted);">
+          请输入你的密码以确认此操作：
+        </p>
+        <div class="form-group" style="margin-top: 1rem;">
+          <input type="password" id="confirmClearPassword" placeholder="请输入密码">
+        </div>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button class="btn btn-ghost" onclick="closeModal('clearModal')">取消</button>
+        <button class="btn btn-danger" onclick="clearAllData()">
+          <i class="fas fa-trash"></i> 确认清空
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 认证检查 =====
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // ===== 工具函数 =====
+    function showAlert(msg, type = 'success') {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = `alert ${type}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function toggleMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      window.location.href = 'login.html';
+    }
+
+    // ===== 加载用户信息 =====
+    async function loadProfile() {
+      try {
+        const response = await fetch('api/get_profile.php', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.error) {
+          showAlert(data.error, 'error');
+          return;
+        }
+
+        // 显示用户信息
+        document.getElementById('profileUsername').textContent = data.username;
+        document.getElementById('profileCreatedAt').textContent = new Date(data.created_at).toLocaleDateString('zh-CN');
+        document.getElementById('username').textContent = data.username;
+
+        // 显示统计信息
+        document.getElementById('statHoldingCount').textContent = data.holdingCount;
+        document.getElementById('statDividendCount').textContent = data.dividendCount;
+        document.getElementById('statTotalDividends').textContent = `¥${parseFloat(data.totalDividends).toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+
+      } catch (error) {
+        showAlert('加载用户信息失败', 'error');
+      }
+    }
+
+    // ===== 修改密码 =====
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        showAlert('两次输入的新密码不一致', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showAlert('新密码至少需要6位', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('api/change_password.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('密码修改成功');
+          document.getElementById('passwordForm').reset();
+        } else {
+          showAlert(data.error || '修改失败', 'error');
+        }
+      } catch (error) {
+        showAlert('网络错误', 'error');
+      }
+    });
+
+    // ===== 修改用户名 =====
+    document.getElementById('usernameForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newUsername = document.getElementById('newUsername').value.trim();
+
+      try {
+        const response = await fetch('api/update_username.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ username: newUsername })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('用户名修改成功');
+          // 更新本地存储
+          user.username = data.username;
+          localStorage.setItem('user', JSON.stringify(user));
+          document.getElementById('username').textContent = data.username;
+          loadProfile();
+          document.getElementById('usernameForm').reset();
+        } else {
+          showAlert(data.error || '修改失败', 'error');
+        }
+      } catch (error) {
+        showAlert('网络错误', 'error');
+      }
+    });
+
+    // ===== 清空数据 =====
+    function confirmClearAll() {
+      document.getElementById('clearModal').classList.add('active');
+      document.getElementById('confirmClearPassword').value = '';
+    }
+
+    async function clearAllData() {
+      const password = document.getElementById('confirmClearPassword').value;
+
+      if (!password) {
+        showAlert('请输入密码', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('api/clear_all_data.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ password: password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('所有数据已清空');
+          closeModal('clearModal');
+          loadProfile(); // 刷新统计
+        } else {
+          showAlert(data.error || '操作失败', 'error');
+        }
+      } catch (error) {
+        showAlert('网络错误', 'error');
+      }
+    }
+
+    // ===== 初始化 =====
+    loadProfile();
+  </script>
+<footer style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">© <a href="https://www.mongon.cn/" target="_blank" style="color:var(--primary);text-decoration:none;">茫跟的小屋</a></footer>
+</body>
+</html>
