@@ -9,9 +9,9 @@
 - 🔍 智能股票搜索 — 支持 A股、港股、美股，输入代码或名称即可快速添加
 - 🔒 数据安全可靠 — 您的数据加密存储在服务器上，随时随地安全访问
 
-## 测试账号
+## 默认账号
 
-部署后默认测试账号：
+部署后默认账号：
 - 用户名：test
 - 密码：123456
 
@@ -27,7 +27,7 @@
 
 1. 克隆代码到服务器
 ```bash
-git clone https://github.com/YOUR_USERNAME/dividend-site.git
+git clone https://github.com/mongoncn/dividend-site.git
 ```
 
 2. 创建数据库
