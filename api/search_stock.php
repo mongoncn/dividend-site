@@ -55,3 +55,4 @@ echo json_encode([
     'results' => array_slice($results, 0, 10)
 ]);
 ?>
+
