@@ -44,3 +44,4 @@ echo json_encode([
     'calendar' => isset($d['calendar']) ? $d['calendar'] : [],
     'received' => $received,
 ], JSON_UNESCAPED_UNICODE);
+
