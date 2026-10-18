@@ -164,3 +164,4 @@ function proxy_report($positions) {
     $d = json_decode($out, true);
     return is_array($d) ? $d : null;
 }
+
