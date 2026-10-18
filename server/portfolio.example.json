@@ -1,6 +1,6 @@
 {
   "meta": {
-    "note": "示例配置：复制本文件为 server/portfolio.json 并改成你的真实持仓"
+    "note": "示例配置（数据纯属虚构）：复制本文件为 server/portfolio.json 并改成你的真实持仓"
   },
   "accounts": [
     {
@@ -8,42 +8,42 @@
       "broker": "示例券商",
       "positions": [
         {
-          "code": "sh600900",
-          "name": "长江电力",
-          "qty": 200,
-          "cost": 25.5
+          "code": "sh601318",
+          "name": "中国平安",
+          "qty": 500,
+          "cost": 45.0
         },
         {
-          "code": "sh601988",
-          "name": "中国银行",
-          "qty": 1000,
-          "cost": 5.4
+          "code": "sz000651",
+          "name": "格力电器",
+          "qty": 300,
+          "cost": 38.5
         }
       ]
     }
   ],
   "funds": [
     {
-      "code": "023917",
-      "name": "华夏自由现金流联接A",
+      "code": "110022",
+      "name": "易方达消费行业",
       "channel": "示例渠道",
-      "shares": 100.0,
-      "cost_amount": 120.0
+      "shares": 200.0,
+      "cost_amount": 300.0
     }
   ],
   "triggers": [
     {
-      "code": "sh600900",
-      "name": "长江电力",
+      "code": "sh601318",
+      "name": "中国平安",
       "dir": "below",
-      "price": 27.0,
+      "price": 42.0,
       "action": "跌破加仓一手"
     },
     {
-      "code": "sh601818",
-      "name": "光大银行",
+      "code": "sz000651",
+      "name": "格力电器",
       "dir": "above",
-      "price": 3.5,
+      "price": 42.0,
       "action": "反弹减仓"
     }
   ]
