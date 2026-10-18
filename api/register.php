@@ -50,3 +50,4 @@ try {
     echo json_encode(['error' => '注册失败: ' . $e->getMessage()]);
 }
 ?>
+
