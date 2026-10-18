@@ -493,11 +493,12 @@
         const n = (d.positions || []).length;
         if (!n) return;
         const banner = document.createElement('div');
-        banner.style.cssText = 'background:#fff8e6;border:1px solid #f0d47a;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;line-height:1.7;color:#6b5b1e;';
+        banner.style.cssText = 'background:#f0f5fb;border:1px solid #b9cde3;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;line-height:1.7;color:#2c4a68;';
         banner.innerHTML = '<i class="fas fa-info-circle"></i> <b>检测到部署配置 portfolio.json（' + n + ' 只，多为部署者的示例数据）</b><br>' +
           '持仓分析、触发价、分红日历当前显示的是这份配置的数据，不是你的。<br>' +
-          '在上方添加你自己的持仓后，所有页面自动切换为你的数据。';
-        const card = document.querySelector('.card');
+          '在下方添加你自己的持仓后，所有页面自动切换为你的数据。';
+        const anchor = document.getElementById('emptyState');
+        const card = anchor ? anchor.closest('.card') : null;
         if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
       } catch (e) { /* 配置不存在或服务未启动，静默 */ }
     }
