@@ -76,3 +76,4 @@ try {
     echo json_encode(['error' => '创建表失败: ' . $e->getMessage()]);
 }
 ?>
+
