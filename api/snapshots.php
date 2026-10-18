@@ -29,3 +29,4 @@ if (!is_array($d)) {
 }
 
 echo json_encode(['items' => isset($d['items']) ? $d['items'] : []], JSON_UNESCAPED_UNICODE);
+
