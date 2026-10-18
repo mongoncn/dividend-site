@@ -34,3 +34,4 @@ echo json_encode([
     'summary' => isset($d['summary']) ? $d['summary'] : [],
     'items'   => isset($d['items']) ? $d['items'] : [],
 ], JSON_UNESCAPED_UNICODE);
+
