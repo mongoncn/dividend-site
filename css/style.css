@@ -69,6 +69,14 @@ a:hover {
   color: var(--accent-gold-light);
 }
 
+/* 页脚链接跟随页脚文字色，不再继承金色 */
+footer a {
+  color: inherit;
+}
+footer a:hover {
+  color: var(--accent-gold);
+}
+
 ::selection {
   background: rgba(240, 185, 11, 0.2);
   color: var(--text-primary);
