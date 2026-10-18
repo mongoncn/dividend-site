@@ -30,3 +30,4 @@ echo json_encode([
     'alerts'     => isset($d['alerts']) ? $d['alerts'] : [],
     'benchmarks' => isset($d['benchmarks']) ? $d['benchmarks'] : [],
 ], JSON_UNESCAPED_UNICODE);
+
