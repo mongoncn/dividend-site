@@ -98,3 +98,69 @@ function ensureDividendsTable($pdo) {
     } catch (PDOException $e) {
     }
 }
+/* ===== 数据服务桥接：仪表盘 MySQL 持仓 → Python 分析 ===== */
+
+/**
+ * 读当前用户的 MySQL 持仓，转成 Python 数据服务的 positions 格式。
+ * 代码规则：SH/SZ 前缀直接用；6 位数字按首位判断沪（5/6/9）深（0/1/2/3）。
+ * 港股、北交所等数据服务暂不支持的标的会被跳过。
+ */
+function user_positions_for_python($uid) {
+    global $pdo;
+    $out = [];
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT s.symbol, s.name, h.quantity, h.buy_price
+               FROM holdings h
+               JOIN stocks s ON h.stock_id = s.id
+              WHERE h.user_id = ?");
+        $stmt->execute([$uid]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $sym = strtoupper(trim($r['symbol']));
+            if (preg_match('/^(SH|SZ|BJ)([0-9]{6})$/', $sym, $m)) {
+                $code = strtolower($m[1] . $m[2]);
+            } elseif (preg_match('/^[0-9]{6}$/', $sym)) {
+                $c = $sym[0];
+                if (in_array($c, ['5','6','9'], true))      $code = 'sh' . $sym;
+                elseif (in_array($c, ['0','1','2','3'], true)) $code = 'sz' . $sym;
+                else continue;
+            } else {
+                continue; // 港股等格式暂不支持
+            }
+            $qty = (int)$r['quantity'];
+            $cost = (float)$r['buy_price'];
+            if ($qty <= 0 || $cost <= 0) continue;
+            $out[] = ['code' => $code, 'name' => $r['name'],
+                      'qty' => $qty, 'cost' => $cost, 'account' => '证券账户'];
+        }
+    } catch (Exception $e) {
+        return []; // 库异常时回退到 portfolio.json
+    }
+    return $out;
+}
+
+/**
+ * 请求 Python 数据服务 /api/report。
+ * 有持仓时 POST 覆盖，没有时 GET 走 portfolio.json（行为向后兼容）。
+ * 成功返回解码后的数组，失败返回 null。
+ */
+function proxy_report($positions) {
+    $url = 'http://127.0.0.1:8001/api/report';
+    if ($positions) {
+        $ctx = stream_context_create(['http' => [
+            'method'  => 'POST',
+            'timeout' => 60,
+            'ignore_errors' => true,
+            'header'  => "Content-Type: application/json\r\n",
+            'content' => json_encode(['positions' => $positions], JSON_UNESCAPED_UNICODE),
+        ]]);
+    } else {
+        $ctx = stream_context_create(['http' => [
+            'method' => 'GET', 'timeout' => 60, 'ignore_errors' => true,
+        ]]);
+    }
+    $out = @file_get_contents($url, false, $ctx);
+    if ($out === false || $out === '') return null;
+    $d = json_decode($out, true);
+    return is_array($d) ? $d : null;
+}

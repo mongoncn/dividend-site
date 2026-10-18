@@ -49,10 +49,14 @@ $password = 'YOUR_DB_PASSWORD';
 ```bash
 cd server
 cp portfolio.example.json portfolio.json   # 改成你的持仓
-python3 server.py                          # 默认监听 127.0.0.1:8000，可用 PORT/HOST 环境变量覆盖
+python3 server.py                          # 默认监听 127.0.0.1:8001，可用 PORT/HOST 环境变量覆盖
 ```
 
-纯 Python 标准库，无需安装任何依赖。然后用 Nginx 反代：
+纯 Python 标准库，无需安装任何依赖。
+
+**持仓来源自动桥接**：如果你在仪表盘添加过持仓（存 MySQL），持仓分析与分红日历会**自动使用仪表盘的持仓**，无需配置 portfolio.json；仪表盘为空时才回退读 portfolio.json。代码格式支持 `sh600900` / `600900`（沪 5/6/9 开头、深 0/1/2/3 开头），港股暂不支持。触发价与场外基金仍来自 portfolio.json。
+
+然后用 Nginx 反代：
 
 ```nginx
 location ^~ /api/chicang.php { }   # 走 PHP 鉴权（见下）

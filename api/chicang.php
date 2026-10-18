@@ -13,19 +13,11 @@ if (!$token || !verifyToken($token)) {
     exit;
 }
 
-$ctx = stream_context_create(['http' => ['method' => 'GET', 'timeout' => 60, 'ignore_errors' => true]]);
-$out = @file_get_contents('http://127.0.0.1:8001/api/report', false, $ctx);
-
-if ($out === false || $out === '') {
+// 优先用仪表盘 MySQL 里的持仓；为空则回退 portfolio.json
+$d = proxy_report(user_positions_for_python(verifyToken($token)));
+if ($d === null) {
     http_response_code(502);
     echo json_encode(['error' => '数据服务暂不可用'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$d = json_decode($out, true);
-if (!is_array($d)) {
-    http_response_code(502);
-    echo json_encode(['error' => '数据格式异常'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

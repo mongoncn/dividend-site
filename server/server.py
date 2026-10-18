@@ -283,14 +283,19 @@ def ttm_dividend(divs, today):
     return sum(d["cash"] for d in divs if start <= d["ex_date"] <= today.strftime("%Y-%m-%d"))
 
 
-def build_report():
-    cfg = load_portfolio()
-    positions = []
-    for acc in cfg.get("accounts", []):
-        for p in acc.get("positions", []):
-            positions.append({**p, "account": acc.get("name", "")})
+def build_report(positions=None):
+    """positions 为 None 时读 portfolio.json；传入列表时用调用方持仓（PHP 桥接 MySQL）"""
+    cfg = {}
+    if positions:
+        positions = [dict(p, account=p.get("account", "证券账户")) for p in positions]
+    else:
+        cfg = load_portfolio()
+        positions = []
+        for acc in cfg.get("accounts", []):
+            for p in acc.get("positions", []):
+                positions.append({**p, "account": acc.get("name", "")})
     if not positions:
-        raise RuntimeError("portfolio.json 里没有场内持仓")
+        raise RuntimeError("没有场内持仓：仪表盘未添加，且 portfolio.json 未配置")
 
     codes = sorted({p["code"] for p in positions})
     quotes = fetch_quotes(codes)
@@ -546,6 +551,29 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(b)
+
+    def do_POST(self):
+        if self.path.startswith("/api/report"):
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(n) or b"{}") if n else {}
+                ps = []
+                for p in (body.get("positions") or []):
+                    try:
+                        q = int(p.get("qty") or 0)
+                        c = float(p.get("cost") or 0)
+                        code = str(p.get("code") or "").strip().lower()
+                        if code and q > 0 and c > 0:
+                            ps.append({"code": code, "name": p.get("name") or code,
+                                       "qty": q, "cost": c,
+                                       "account": p.get("account") or "证券账户"})
+                    except (TypeError, ValueError):
+                        continue
+                self._send(200, json.dumps(build_report(ps or None), ensure_ascii=False))
+            except Exception as e:
+                self._send(500, json.dumps({"error": str(e)[:160]}, ensure_ascii=False))
+        else:
+            self._send(404, "not found", "text/plain; charset=utf-8")
 
     def do_GET(self):
         if self.path.startswith("/api/report"):
