@@ -136,6 +136,9 @@
       <div id="emptyState" class="empty-state" style="display: none;">
         <i class="fas fa-inbox"></i>
         <p>暂无持仓记录</p>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin:-0.5rem 0 1rem;line-height:1.7;">
+          仪表盘只显示你自己录入的持仓（存数据库，别人看不到）。<br>
+          添加后，持仓分析、触发价、分红日历会自动切换为你的数据。</p>
         <button class="btn btn-primary" onclick="openAddModal()">
           <i class="fas fa-plus"></i> 添加第一只股票
         </button>
@@ -478,6 +481,27 @@
       }
     });
 
+    // ===== 空持仓时检测部署配置 portfolio.json，提示数据来源 =====
+    async function checkDeploymentConfig() {
+      try {
+        const token = localStorage.getItem('token');
+        const r = await fetch('api/chicang.php', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (r.status !== 200) return;
+        const d = await r.json();
+        const n = (d.positions || []).length;
+        if (!n) return;
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#fff8e6;border:1px solid #f0d47a;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;line-height:1.7;color:#6b5b1e;';
+        banner.innerHTML = '<i class="fas fa-info-circle"></i> <b>检测到部署配置 portfolio.json（' + n + ' 只，多为部署者的示例数据）</b><br>' +
+          '持仓分析、触发价、分红日历当前显示的是这份配置的数据，不是你的。<br>' +
+          '在上方添加你自己的持仓后，所有页面自动切换为你的数据。';
+        const card = document.querySelector('.card');
+        if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
+      } catch (e) { /* 配置不存在或服务未启动，静默 */ }
+    }
+
     // ===== 加载数据 =====
     async function loadHoldings() {
       const loadingState = document.getElementById('loadingState');
@@ -496,6 +520,7 @@
             tableContainer.style.display = 'none';
             emptyState.style.display = 'block';
             document.getElementById('chartCard').style.display = 'none';
+            checkDeploymentConfig();
           } else {
             tableContainer.style.display = 'block';
             emptyState.style.display = 'none';
