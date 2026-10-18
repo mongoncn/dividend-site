@@ -1,25 +1,38 @@
 <?php
-// 数据库配置 — 请在部署时替换为真实值
+// 数据库配置
 $host = 'localhost';
 $port = 3306;
 $dbname = 'YOUR_DB_NAME';
 $username = 'YOUR_DB_USER';
-$password = 'YOUR_DB_PASSWORD';
+$password = "YOUR_DB_PASSWORD";
 
 // 创建数据库连接
 try {
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $username, $password);
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die(json_encode(['error' => '数据库连接失败: ' . $e->getMessage()]));
+    http_response_code(500);
+    die(json_encode(['error' => '数据库连接失败']));
 }
 
-// 设置CORS头
-header('Access-Control-Allow-Origin: *');
+// 安全响应头
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: same-origin');
+
+// CORS：默认放行全部（部署简单）；生产环境建议设置环境变量 APP_ORIGIN 收紧到你的域名
+$allowed_origin = getenv('APP_ORIGIN') ?: '';
+if ($allowed_origin) {
+    if (($_SERVER['HTTP_ORIGIN'] ?? '') === $allowed_origin) {
+        header('Access-Control-Allow-Origin: ' . $allowed_origin);
+        header('Access-Control-Allow-Credentials: true');
+    }
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// 处理预检请求
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
@@ -30,20 +43,27 @@ function getJsonInput() {
     return json_decode($json, true);
 }
 
-// 生成token
+// 生成token：HMAC签名，防止伪造userId
 function generateToken($userId) {
-    return base64_encode($userId . '_' . time() . '_' . uniqid());
+    $key = getenv('SX_TOKEN_KEY') ?: 'sx-fallback-secret';
+    $payload = $userId . '|' . time() . '|' . bin2hex(random_bytes(8));
+    $sig = hash_hmac('sha256', $payload, $key);
+    return base64_encode($payload . '|' . $sig);
 }
 
-// 验证token
+// 验证token：校验签名与时效
 function verifyToken($token) {
     if (!$token) return false;
     $decoded = base64_decode($token);
-    $parts = explode('_', $decoded);
-    if (count($parts) >= 2) {
-        return $parts[0];
-    }
-    return false;
+    $parts = explode('|', $decoded);
+    if (count($parts) !== 4) return false;
+    list($userId, $ts, $rand, $sig) = $parts;
+    if (!ctype_digit($userId) || !ctype_digit($ts)) return false;
+    $key = getenv('SX_TOKEN_KEY') ?: 'sx-fallback-secret';
+    $expect = hash_hmac('sha256', $userId . '|' . $ts . '|' . $rand, $key);
+    if (!hash_equals($expect, $sig)) return false;
+    if (time() - (int)$ts > 86400 * 30) return false;
+    return (int)$userId;
 }
 
 // 获取请求头（兼容不同服务器）
@@ -62,7 +82,6 @@ function getAuthHeader() {
     return isset($headers['Authorization']) ? str_replace('Bearer ', '', $headers['Authorization']) : '';
 }
 
-// 确保 dividends 表存在
 function ensureDividendsTable($pdo) {
     try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS dividends (
@@ -77,7 +96,5 @@ function ensureDividendsTable($pdo) {
             FOREIGN KEY (holding_id) REFERENCES holdings(id) ON DELETE CASCADE
         )");
     } catch (PDOException $e) {
-        // 忽略错误
     }
 }
-?>

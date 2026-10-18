@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "note": "示例配置：复制本文件为 server/portfolio.json 并改成你的真实持仓"
+  },
+  "accounts": [
+    {
+      "name": "我的证券账户",
+      "broker": "示例券商",
+      "positions": [
+        {
+          "code": "sh600900",
+          "name": "长江电力",
+          "qty": 200,
+          "cost": 25.5
+        },
+        {
+          "code": "sh601988",
+          "name": "中国银行",
+          "qty": 1000,
+          "cost": 5.4
+        }
+      ]
+    }
+  ],
+  "funds": [
+    {
+      "code": "023917",
+      "name": "华夏自由现金流联接A",
+      "channel": "示例渠道",
+      "shares": 100.0,
+      "cost_amount": 120.0
+    }
+  ],
+  "triggers": [
+    {
+      "code": "sh600900",
+      "name": "长江电力",
+      "dir": "below",
+      "price": 27.0,
+      "action": "跌破加仓一手"
+    },
+    {
+      "code": "sh601818",
+      "name": "光大银行",
+      "dir": "above",
+      "price": 3.5,
+      "action": "反弹减仓"
+    }
+  ]
+}

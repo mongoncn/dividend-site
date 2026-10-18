@@ -58,6 +58,18 @@ try {
         )
     ");
 
+    // 每日市值快照（收益走势用，由 sync_db.py 或手动写入）
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS snapshots (
+            snap_date DATE PRIMARY KEY,
+            market_value DECIMAL(14,2) NOT NULL,
+            cost DECIMAL(14,2) NOT NULL,
+            pnl DECIMAL(14,2) NOT NULL,
+            pnl_pct DECIMAL(8,3) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
     echo json_encode(['success' => true, 'message' => '数据库表创建成功']);
 
 } catch (PDOException $e) {
